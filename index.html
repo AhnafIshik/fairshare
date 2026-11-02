@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f35">
+  <title>FAIRSHARE — Shared living, sorted.</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#" aria-label="FAIRSHARE home">
+        <span class="brand-mark">f</span><span>fairshare<span class="brand-dot">.</span></span>
+      </a>
+      <div class="house-switcher"><span class="house-icon">⌂</span><div><small>YOUR HOUSEHOLD</small><strong id="houseNameSide">The Green House</strong></div><span class="chevron">⌄</span></div>
+      <div class="nav-label">WORKSPACE</div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">▦</span> Overview</button>
+        <button class="nav-item" data-page="expenses"><span class="nav-icon">↔</span> Expenses <span class="nav-count" id="expenseNavCount">0</span></button>
+        <button class="nav-item" data-page="bills"><span class="nav-icon">▤</span> Bills & rent</button>
+        <button class="nav-item" data-page="vehicles"><span class="nav-icon">⌁</span> Cars & trips</button>
+        <button class="nav-item" data-page="cleaning"><span class="nav-icon">✳</span> Cleaning</button>
+        <button class="nav-item" data-page="housemates"><span class="nav-icon">♧</span> Housemates</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="privacy-note"><span>◈</span><div><strong>Your house, organised.</strong><p>One place for the shared stuff.</p></div></div>
+        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span> Settings</button>
+        <div class="profile"><div class="avatar avatar-green">IS</div><div class="profile-text"><strong>Ishik</strong><small>House admin</small></div><button id="resetBtn" class="more-btn" title="Reset demo data">···</button></div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" aria-label="Open menu">☰</button>
+        <div class="breadcrumb"><span>Household</span><span class="crumb-slash">/</span><strong id="pageTitle">Overview</strong></div>
+        <div class="topbar-actions">
+          <div class="date-chip"><span>◷</span><span id="todayLabel">Today</span></div>
+          <button class="icon-button" id="notificationsBtn" aria-label="Notifications">♧<i></i></button>
+          <button class="primary-btn small" id="quickAddBtn">＋ Add expense</button>
+        </div>
+      </header>
+
+      <section class="page active" id="page-dashboard">
+        <div class="welcome-row">
+          <div><div class="eyebrow">TUESDAY, HOUSEHOLD HERO</div><h1>Good evening, Ishik <span class="wave">✦</span></h1><p class="muted">Here’s what’s happening around the house.</p></div>
+          <div class="period-pill"><span class="status-dot"></span> Household is up to date</div>
+        </div>
+        <div class="stat-grid">
+          <article class="stat-card balance-card"><div class="stat-top"><span class="stat-label">YOU OWE</span><span class="stat-icon peach">↗</span></div><div class="stat-value" id="youOwe">$0.00</div><div class="stat-foot"><span class="mini-dot red-dot"></span><span>Your unpaid shares</span></div></article>
+          <article class="stat-card"><div class="stat-top"><span class="stat-label">OWED TO YOU</span><span class="stat-icon mint">↙</span></div><div class="stat-value" id="owedToYou">$0.00</div><div class="stat-foot"><span class="mini-dot green-dot"></span><span>Housemates' shares</span></div></article>
+          <article class="stat-card"><div class="stat-top"><span class="stat-label">HOUSE EXPENSES</span><span class="stat-icon lavender">▤</span></div><div class="stat-value" id="totalExpenses">$0.00</div><div class="stat-foot"><span>Recorded in this demo</span></div></article>
+          <article class="stat-card"><div class="stat-top"><span class="stat-label">NEXT RENT</span><span class="stat-icon yellow">⌂</span></div><div class="stat-value" id="nextRent">$300.00</div><div class="stat-foot"><span class="mini-dot amber-dot"></span><span id="rentDueLabel">Due Thursday</span></div></article>
+        </div>
+        <div class="dashboard-grid">
+          <article class="panel recent-panel">
+            <div class="panel-heading"><div><h2>Recent expenses</h2><p class="muted">Latest activity from your housemates</p></div><button class="text-btn" data-goto="expenses">View all <span>↗</span></button></div>
+            <div id="recentExpenses" class="expense-list"></div>
+          </article>
+          <article class="panel tasks-panel">
+            <div class="panel-heading"><div><h2>Coming up</h2><p class="muted">Keep the house running smoothly</p></div><button class="subtle-icon" data-goto="cleaning">↗</button></div>
+            <div id="upcomingList" class="upcoming-list"></div>
+          </article>
+          <article class="panel house-panel">
+            <div class="panel-heading"><div><h2>Your housemates</h2><p class="muted">5 people in the house</p></div><button class="text-btn" data-goto="housemates">See all <span>↗</span></button></div>
+            <div id="memberPreview" class="member-preview"></div>
+          </article>
+          <article class="panel split-panel">
+            <div class="panel-heading"><div><h2>Spending snapshot</h2><p class="muted">Recorded expense categories</p></div><span class="this-month">This month</span></div>
+            <div id="spendingSnapshot" class="spending-snapshot"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="page-expenses">
+        <div class="page-heading"><div><div class="eyebrow">MONEY, WITHOUT THE MESS</div><h1>Expenses</h1><p class="muted">Split shared costs with the right people, automatically.</p></div><button class="primary-btn" id="addExpensePageBtn">＋ Add expense</button></div>
+        <div class="toolbar"><div class="search-wrap"><span>⌕</span><input id="expenseSearch" placeholder="Search expenses..." aria-label="Search expenses"></div><select id="expenseFilter" aria-label="Filter expenses"><option value="all">All categories</option><option>Groceries</option><option>Food & dining</option><option>Household supplies</option><option>Transport</option><option>Fuel</option><option>Utilities</option><option>Other</option></select></div>
+        <div class="panel table-panel"><div class="table-responsive"><table><thead><tr><th>EXPENSE</th><th>PAID BY</th><th>SHARED WITH</th><th>DATE</th><th>AMOUNT</th><th></th></tr></thead><tbody id="expensesTable"></tbody></table></div><div id="expensesEmpty" class="empty-state hidden"><div class="empty-icon">↔</div><h3>No expenses found</h3><p>Try another search or add your first expense.</p><button class="primary-btn" id="emptyAddExpense">＋ Add expense</button></div></div>
+      </section>
+
+      <section class="page" id="page-bills">
+        <div class="page-heading"><div><div class="eyebrow">KEEP DUE DATES UNDER CONTROL</div><h1>Bills & rent</h1><p class="muted">Track household bills and fortnightly rent in one place.</p></div><button class="primary-btn" id="addBillBtn">＋ Add bill</button></div>
+        <div class="stat-grid compact-stats"><article class="stat-card"><div class="stat-label">UPCOMING BILLS</div><div class="stat-value" id="billTotal">$0.00</div><div class="stat-foot">Outstanding bill shares</div></article><article class="stat-card"><div class="stat-label">FORTNIGHTLY RENT</div><div class="stat-value" id="rentTotal">$1,500.00</div><div class="stat-foot">Whole household</div></article><article class="stat-card"><div class="stat-label">YOUR RENT SHARE</div><div class="stat-value" id="rentShare">$300.00</div><div class="stat-foot">Per fortnight</div></article></div>
+        <div class="panel"><div class="panel-heading"><div><h2>Rent schedule</h2><p class="muted">Reminder on Wednesday, due on Thursday</p></div><button class="outline-btn" id="editRentBtn">Edit schedule</button></div><div id="rentSchedule" class="rent-schedule"></div></div>
+        <div class="panel section-gap"><div class="panel-heading"><div><h2>Household bills</h2><p class="muted">Utilities, cleaning, lawn mowing and more</p></div></div><div id="billsList" class="bill-list"></div></div>
+      </section>
+
+      <section class="page" id="page-vehicles">
+        <div class="page-heading"><div><div class="eyebrow">FAIRER SHARED RIDES</div><h1>Cars & trips</h1><p class="muted">Estimate fuel costs and split them among the people on the trip.</p></div><div class="button-row"><button class="outline-btn" id="addCarBtn">＋ Add car</button><button class="primary-btn" id="addTripBtn">＋ Record trip</button></div></div>
+        <div id="vehicleCards" class="vehicle-grid"></div>
+        <div class="panel section-gap"><div class="panel-heading"><div><h2>Trip history</h2><p class="muted">Fuel costs are estimates based on the recorded efficiency and price.</p></div></div><div id="tripsList" class="trip-list"></div></div>
+      </section>
+
+      <section class="page" id="page-cleaning">
+        <div class="page-heading"><div><div class="eyebrow">SHARED SPACE, SHARED CARE</div><h1>Cleaning schedule</h1><p class="muted">Keep chores visible and rotate the work.</p></div><button class="primary-btn" id="addTaskBtn">＋ Add task</button></div>
+        <div class="cleaning-summary"><div class="cleaning-summary-icon">✳</div><div><strong>A little effort from everyone.</strong><p class="muted">Mark a task complete when it’s done. Rotations are managed manually in this demo.</p></div></div>
+        <div class="panel"><div class="panel-heading"><div><h2>This week's tasks</h2><p class="muted">Your household's shared checklist</p></div><span class="this-month" id="taskCount">0 tasks</span></div><div id="tasksList" class="tasks-board"></div></div>
+      </section>
+
+      <section class="page" id="page-housemates">
+        <div class="page-heading"><div><div class="eyebrow">YOUR HOUSEHOLD TEAM</div><h1>Housemates</h1><p class="muted">The people who make this house a home (and occasionally leave dishes).</p></div><button class="primary-btn" id="inviteBtn">＋ Invite housemate</button></div>
+        <div class="member-grid" id="memberGrid"></div>
+        <div class="panel section-gap"><div class="panel-heading"><div><h2>Household details</h2><p class="muted">Basic information for this demo household</p></div><button class="outline-btn" id="editHouseBtn">Edit details</button></div><div class="details-grid" id="houseDetails"></div></div>
+      </section>
+
+      <section class="page" id="page-settings">
+        <div class="page-heading"><div><div class="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p class="muted">Configure your demo household.</p></div></div>
+        <div class="panel settings-panel"><h2>Household settings</h2><p class="muted">These settings are stored in this browser only.</p><form id="settingsForm" class="form-grid"><label>Household name<input name="houseName" id="settingHouseName" required maxlength="60"></label><label>Currency<select name="currency"><option value="AUD">AUD — Australian Dollar</option></select></label><label>Rent per fortnight ($)<input name="rent" id="settingRent" type="number" min="0" step="0.01" required></label><label>Rent due date<input name="rentDate" id="settingRentDate" type="date" required></label><div class="form-actions"><button class="primary-btn" type="submit">Save settings</button><button class="outline-btn" type="button" id="exportBtn">Export demo data</button></div></form><div class="notice"><strong>Prototype note</strong><p>This version stores data in your browser's local storage. It does not yet provide real multi-user accounts, cloud synchronisation, email notifications, or secure cross-device sharing.</p></div></div>
+      </section>
+
+      <footer class="app-footer"><span>FAIRSHARE <span class="brand-dot">.</span></span><span>Shared living, sorted.</span><span>Prototype · Demo data stays in this browser</span></footer>
+    </main>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+  <div class="modal-backdrop hidden" id="modalBackdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head"><div><div class="eyebrow" id="modalEyebrow">FAIRSHARE</div><h2 id="modalTitle">Add expense</h2></div><button class="close-btn" id="closeModal" aria-label="Close">×</button></div>
+      <div id="modalBody"></div>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
