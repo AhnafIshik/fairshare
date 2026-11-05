@@ -1,4 +1,0 @@
-FAIRSHARE prototype
-Entry point: index.html
-No npm install/build required.
-For setup and limitations, read README.md.

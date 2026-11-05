@@ -1,75 +1,62 @@
-# FAIRSHARE — Shared Household Management Prototype
+# Fairshare
 
-FAIRSHARE is a responsive, browser-based prototype for managing shared household expenses, bills, rent, vehicle fuel costs, and cleaning tasks.
+A Next.js / TypeScript application for shared household expenses, bills, rent, vehicles and cleaning. Australian English, integer-cent AUD accounting, configurable IANA timezones, and Supabase PostgreSQL as the source of truth.
 
-## Run it
+**This is an implemented initial release, not a production-ready service or a claim that every item in the original brief is complete.** It builds and has automated database/security tests. Real authentication, storage, hosted deployment and email delivery still require your own configured services and acceptance testing. Read [the release limits](docs/LIMITATIONS.md) before using real financial data.
 
-### Simplest option
-1. Download and extract the project ZIP.
-2. Open the `fairshare` folder.
-3. Double-click `index.html` to open it in a modern browser.
+## Start locally
 
-### Recommended local server
-If you have Python 3 installed, open Terminal in the project folder and run:
+Install **Node.js 22 LTS** (includes npm), then open this project in a terminal:
 
-```bash
-python3 -m http.server 8000
+```sh
+npm ci
+cp .env.example .env.local
+npm run dev
 ```
 
-Then visit `http://localhost:8000`.
+Open [the homepage](http://localhost:3000) or [the sample household](http://localhost:3000/app/overview?demo=1). The sample works without credentials: its fictional records are read-only; form inputs can be explored but never saved. It never writes localStorage or mixes sample records with live data. Real application routes require sign-in and a configured database.
 
-Stop the server with `Ctrl+C`.
+## Connect real accounts and records
 
-## Features in this prototype
+For the login feature, start with [LOGIN_SETUP.md](docs/LOGIN_SETUP.md). It covers email registration, saved private profiles, verification/reset and optional Google sign-in.
 
-- Responsive desktop and mobile layout.
-- Dashboard with summary cards, recent expenses, upcoming tasks, housemates, and spending snapshot.
-- Add and search expenses.
-- Equal expense splitting among selected housemates.
-- Expense breakdown and deletion.
-- Household bills with selected participants and status changes.
-- Rent settings and next-due display.
-- Vehicle registration.
-- Fuel price updates and a placeholder for receipt/photo selection.
-- Trip fuel cost estimation using distance, km/L and fuel price.
-- Optional tolls and parking.
-- Cleaning task creation and completion.
-- Add demo housemates.
-- Household settings.
-- Export current browser data to JSON.
-- Data persists in this browser using localStorage.
+Follow [SETUP.md](docs/SETUP.md) for Supabase, email, cron and Vercel. Set the two public Supabase variables in `.env.local`, apply both migrations in `supabase/migrations/` in filename order to a **new dedicated Supabase project**, configure Auth URLs and SMTP, restart Next.js, then create your own account.
 
-## Important limitations
+No service credentials are included. The service-role key is server-only and is needed for scheduled reminders/optional email and the development seed, not ordinary household actions. Never put secrets in a `NEXT_PUBLIC_` variable.
 
-This is a **front-end prototype**, not a production-ready multi-user service.
+## Implemented
 
-- Data is stored only in the current browser profile. It does not sync between housemates or devices.
-- There is no real sign-in, invitation email, cloud database, server-side permission system, or multi-user authentication.
-- Rent and bill reminders are displayed in the interface but are not sent automatically by email, SMS, or push notification.
-- Image/file inputs are demonstrations only. Files are not uploaded or stored.
-- Equal splitting is implemented. Custom amounts and percentages are not yet available.
-- Balance summaries are prototype calculations, not an authoritative accounting ledger. The sample dashboard is intended to demonstrate workflows and layout.
-- The demo uses sample household data. Do not enter sensitive personal or financial information.
-- There is no payment processing or bank integration.
+- Public website, FAQs, sign-in / signup / reset / verification callback, protected routes, and multi-household selection.
+- Household creation, admin roles, single-use hashed expiring invitations, explicit acceptance, membership departure/removal with preserved history and a last-admin safeguard.
+- Atomic expense/share writes; equal, custom amount and basis-point percentage splits, deterministic remainder cents, participant validation, transaction filters, share calculations, atomic corrections, linked agreed adjustments and voiding unsettled entries with audit records.
+- Per-expense obligations, partial manual repayments, pending reservations, recipient confirmation/rejection, duplicate-submission keys and derived balances.
+- Bills, custom contributions, reminders, documents and separately reported external provider payments.
+- Rent configuration, weekly/fortnightly/28-day anchors, configurable lead reminder, timezone-aware occurrences and overdue reminders.
+- Vehicles, fuel-price history, immutable trip calculation snapshots, estimated consumption, tolls/parking and participant cost allocation.
+- Daily/weekly/fortnightly/monthly cleaning rotations, arbitrary household sizes, completion, reassignment, future exclusions and pauses without rewriting history.
+- In-app notifications, preferences, a secret-protected backend scheduler, and an optional leased email outbox using Resend idempotency keys.
+- Private PDF/image storage, server-side file signatures and size validation, short-lived authorised links, RLS, audit log and CSV export with spreadsheet formula escaping.
 
-## Before real users use FAIRSHARE
+## Verify
 
-The next production stage should replace localStorage with a proper backend such as Supabase/PostgreSQL and implement:
-- Real authentication and household invitations.
-- Server-side authorisation and row-level security.
-- A transaction ledger for expenses, allocations, repayments, and reversals.
-- Validated monetary calculations on the server.
-- Private receipt storage and signed access links.
-- A reliable scheduled-job service for reminders.
-- Email delivery configuration.
-- Audit logging, backups, tests, and security review.
+```sh
+npm run typecheck
+npm test
+npm run build
+```
 
-## Files
+Build/dev use Next.js's supported Webpack mode for compatibility with restricted local environments. Package versions are pinned and `package-lock.json` is committed. PGlite runs the actual PostgreSQL migration with mocked Supabase `auth` and `storage` schemas, real SQL roles and RLS. This verifies database rules; it does **not** substitute for testing Supabase Auth/Storage/SMTP over the network.
 
-- `index.html` — page structure and UI.
-- `styles.css` — responsive visual design.
-- `app.js` — prototype interactions and browser data storage.
-- `README.md` — setup and limitations.
-- `assets/` — reserved for future icons/images.
+See [TESTING.md](docs/TESTING.md) for executed checks and the remaining staging acceptance steps. See [LEARNING.md](docs/LEARNING.md) for what to learn, and [ARCHITECTURE.md](docs/ARCHITECTURE.md) for design decisions.
 
-No build step or package installation is required for this prototype.
+## Code map
+
+- `app/`: App Router pages, checked server actions, auth callback, cron and CSV endpoints.
+- `components/`: responsive workspace, forms, accessible native dialogs and navigation.
+- `lib/`: money, balance reconstruction, dates, validation, demo records and Supabase clients.
+- `supabase/migrations/`: normalised ledger, membership and scheduling schema, checked RPCs and read/storage policies.
+- `scripts/seed.mjs`: explicit opt-in development seed using real Auth accounts and application RPCs.
+- `tests/`: unit and PostgreSQL integration/security tests.
+- `docs/PROJECT_BRIEF.md`: your original brief, preserved for comparison with the implemented scope.
+
+No payment integration, bank feed, OCR, push delivery, live electricity-provider integration or email marketing subscription is required to use the core ledger. Fairshare records agreements and transfers made elsewhere; it never moves money.

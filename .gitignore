@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.env*
+!.env.example
+*.tsbuildinfo
+coverage/
+.DS_Store
+.vercel/
+
+# Local editor and Supabase CLI state
+.vscode/
+supabase/.temp/
+.supabase/
