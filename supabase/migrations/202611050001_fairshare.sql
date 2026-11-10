@@ -583,10 +583,73 @@ create function public.household_snapshot(h uuid) returns jsonb language plpgsql
 
 -- Supabase defaults can otherwise leave newly created functions executable by anon.
 revoke create on schema public from public,anon,authenticated;
-revoke all on all tables in schema public from anon,authenticated;
+-- Scope grants to this migration so applying it after profiles preserves login permissions.
+revoke all on public.households,
+ public.household_members,
+ public.household_invitations,
+ public.expenses,
+ public.expense_participants,
+ public.repayments,
+ public.vehicles,
+ public.fuel_price_records,
+ public.rent_configurations,
+ public.cleaning_tasks,
+ public.cleaning_assignments,
+ public.notification_preferences,
+ public.notifications,
+ public.email_outbox,
+ public.documents,
+ public.audit_logs,
+ public.rate_limits from public,anon,authenticated;
 grant select on public.households,public.household_members,public.household_invitations,public.expenses,public.expense_participants,public.repayments,public.vehicles,public.fuel_price_records,public.rent_configurations,public.cleaning_tasks,public.cleaning_assignments,public.notification_preferences,public.notifications,public.documents,public.audit_logs to authenticated;
-revoke execute on all functions in schema public from public,anon,authenticated;
+revoke execute on function public.is_member(uuid,uuid),
+ public.is_member(uuid),
+ public.is_admin(uuid),
+ public.can_read_expense(uuid),
+ public.can_manage_expense(uuid),
+ public.can_read_document(text),
+ public.rate_limit(text,integer),
+ public.notify(uuid,uuid,text,text,text,boolean),
+ public.create_entry(uuid,uuid,jsonb),
+ public.create_household(jsonb),
+ public.create_invitation(uuid,text),
+ public.accept_invitation(text,text),
+ public.record_entry(uuid,jsonb),
+ public.record_repayment(uuid,jsonb),
+ public.review_repayment(uuid,boolean),
+ public.void_entry(uuid),
+ public.replace_entry(uuid,jsonb),
+ public.record_adjustment(uuid,jsonb),
+ public.save_vehicle(uuid,jsonb),
+ public.record_fuel_price(uuid,jsonb),
+ public.configure_rent(uuid,jsonb),
+ public.save_cleaning_task(uuid,jsonb),
+ public.update_assignment(uuid,jsonb),
+ public.manage_household(uuid,jsonb),
+ public.set_preferences(boolean,boolean),
+ public.mark_notifications_read(),
+ public.generate_schedule(uuid),
+ public.process_schedules(),
+ public.claim_emails(),
+ public.register_document(uuid,jsonb),
+ public.household_snapshot(uuid) from public,anon,authenticated;
 grant execute on function public.is_member(uuid),public.is_admin(uuid),public.can_read_expense(uuid),public.can_manage_expense(uuid),public.can_read_document(text) to authenticated;
 grant execute on function public.create_household(jsonb),public.create_invitation(uuid,text),public.accept_invitation(text,text),public.record_entry(uuid,jsonb),public.replace_entry(uuid,jsonb),public.record_adjustment(uuid,jsonb),public.record_repayment(uuid,jsonb),public.review_repayment(uuid,boolean),public.void_entry(uuid),public.save_vehicle(uuid,jsonb),public.record_fuel_price(uuid,jsonb),public.configure_rent(uuid,jsonb),public.save_cleaning_task(uuid,jsonb),public.update_assignment(uuid,jsonb),public.manage_household(uuid,jsonb),public.set_preferences(boolean,boolean),public.mark_notifications_read(),public.generate_schedule(uuid),public.register_document(uuid,jsonb),public.household_snapshot(uuid) to authenticated;
-grant all on all tables in schema public to service_role;
+grant all on public.households,
+ public.household_members,
+ public.household_invitations,
+ public.expenses,
+ public.expense_participants,
+ public.repayments,
+ public.vehicles,
+ public.fuel_price_records,
+ public.rent_configurations,
+ public.cleaning_tasks,
+ public.cleaning_assignments,
+ public.notification_preferences,
+ public.notifications,
+ public.email_outbox,
+ public.documents,
+ public.audit_logs,
+ public.rate_limits to service_role;
 grant execute on function public.process_schedules(),public.claim_emails() to service_role;

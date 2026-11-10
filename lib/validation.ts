@@ -8,6 +8,29 @@ export const date = z
     return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
   }, 'Choose a valid date');
 export const text = (max = 200) => z.string().trim().min(1).max(max);
+const invitationHelp = 'Paste the full Fairshare invitation link or its 64-character token.';
+export const invitationToken = z
+  .string({ error: invitationHelp })
+  .trim()
+  .max(2048, invitationHelp)
+  .transform((value) => {
+    try {
+      const link = new URL(value);
+      if (['http:', 'https:'].includes(link.protocol) && link.pathname === '/onboarding') {
+        const tokens = link.searchParams.getAll('token');
+        if (tokens.length === 1) return tokens[0];
+      }
+    } catch {
+      // A raw invitation token is also accepted.
+    }
+    return value;
+  })
+  .pipe(
+    z
+      .string()
+      .regex(/^[a-f0-9]{64}$/i, invitationHelp)
+      .toLowerCase(),
+  );
 export const decimal = z
   .string()
   .regex(/^\d+(\.\d{1,4})?$/, 'Enter a positive number, with up to four decimal places')

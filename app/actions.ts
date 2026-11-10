@@ -1,12 +1,30 @@
 'use server';
+import { createHash } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { configured, supabase } from '@/lib/supabase/server';
+import { configuredAuthOrigin } from '@/lib/auth-flow';
+import { sendEmail } from '@/lib/email';
 import { cents } from '@/lib/money';
-import { date, decimal, entrySchema, participants, text, uuid } from '@/lib/validation';
+import {
+  date,
+  decimal,
+  entrySchema,
+  invitationToken,
+  participants,
+  text,
+  uuid,
+} from '@/lib/validation';
 export type ActionState = { error?: string; message?: string; url?: string };
+const invitationEmailErrors = {
+  unconfigured: 'Invitation created. Set up email delivery or copy the link to share it.',
+  'test-recipient-restricted':
+    'Invitation created. The Resend test sender can only email the address on your Resend account. Verify a sending domain to email this recipient, or copy the link.',
+  failed:
+    'Invitation created. Email delivery could not be confirmed. You can copy the link to share it.',
+};
 const val = (f: FormData, k: string) => String(f.get(k) ?? '');
 function safeError(error: unknown) {
   if (error instanceof z.ZodError)
@@ -59,7 +77,7 @@ export async function mutate(_: ActionState, form: FormData): Promise<ActionStat
       }
     } else if (intent === 'join') {
       result = await client.rpc('accept_invitation', {
-        token: text(128).parse(form.get('token')),
+        token: invitationToken.parse(form.get('token')),
         member_name: text(80).parse(form.get('display_name')),
       });
       if (!result.error)
@@ -71,16 +89,28 @@ export async function mutate(_: ActionState, form: FormData): Promise<ActionStat
         });
     } else if (intent === 'invite') {
       const email = val(form, 'email').trim();
+      const link = new URL('/onboarding', configuredAuthOrigin(process.env.NEXT_PUBLIC_SITE_URL));
       result = await client.rpc('create_invitation', {
         h,
         email_address: email ? z.email().parse(email) : null,
       });
-      if (!result.error)
-        return {
-          message:
-            'Single-use invitation created. Share this link privately; it expires in 7 days. No invitation email has been sent.',
-          url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/onboarding?token=${result.data}`,
-        };
+      if (!result.error) {
+        link.searchParams.set('token', result.data);
+        const url = link.toString();
+        if (!email)
+          return { url, message: 'Invitation created. Copy the private link to share it.' };
+
+        const tokenHash = createHash('sha256').update(result.data).digest('hex');
+        const delivery = await sendEmail({
+          to: email,
+          subject: 'You’re invited to join a Fairshare household',
+          text: `You’ve been invited to join a household on Fairshare.\n\nOpen your private invitation:\n${url}\n\nSign in or create an account using this email address, then accept the invitation. The link can be used once and expires in seven days.`,
+          idempotencyKey: `fairshare/invitation/${tokenHash}`,
+        });
+        if (delivery === 'accepted')
+          return { url, message: `Invitation email queued for ${email}.` };
+        return { url, error: invitationEmailErrors[delivery] };
+      }
     } else if (intent === 'entry' || intent === 'replace') {
       const d = entrySchema.parse(Object.fromEntries(form));
       let metadata: Record<string, string | number> = {};
@@ -351,12 +381,14 @@ export async function switchHousehold(form: FormData) {
   revalidatePath('/app', 'layout');
   redirect('/app/overview');
 }
-export async function signOut() {
+export async function signOut(form?: FormData) {
   if (configured()) {
     const c = await supabase();
     const { error } = await c.auth.signOut({ scope: 'local' });
     if (error) redirect('/login?error=signout');
   }
   (await cookies()).delete('fairshare-household');
+  const invitation = invitationToken.safeParse(form?.get('invitation'));
+  if (invitation.success) redirect(`/login?mode=signin&token=${invitation.data}`);
   redirect('/');
 }

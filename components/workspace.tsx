@@ -1704,15 +1704,15 @@ function Settings({ s }: { s: Snapshot }) {
                 label="Create invitation"
               >
                 <Field
-                  label="Restrict to email"
+                  label="Recipient email"
                   name="email"
                   type="email"
                   required={false}
-                  help="Leave blank to allow any verified email to accept the link."
+                  help="Enter an email to send an invitation when email delivery is configured. Leave it blank to create a link you can share yourself."
                 />
                 <p className="small muted">
-                  The link is private, expires in seven days and can be accepted once. You share it
-                  directly with your housemate; Fairshare does not send an invitation email.
+                  The private link expires in seven days and can be accepted once. If you enter an
+                  email, the recipient must verify that address to join.
                 </p>
               </ActionForm>
             </Modal>

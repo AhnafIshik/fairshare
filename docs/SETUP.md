@@ -13,7 +13,7 @@ For a focused guide to account registration, login and saved profiles, see [LOGI
 | Transactional email provider | Signup verification and password resets      | Yes for ordinary users       | Configure custom SMTP inside Supabase Auth                          |
 | Domain + DNS access          | Verified sending domain and optional app URL | Needed for production email  | Provider DKIM/SPF records and an appropriate DMARC policy           |
 | Scheduler                    | Reminders while browsers are closed          | Yes for unattended reminders | Secret-authenticated GET to `/api/cron`                             |
-| Resend API account/key       | Optional household reminder emails           | Optional                     | Verified sender, API key, `EMAIL_FROM`; users opt in                |
+| Resend API account/key       | Household invitation and reminder emails     | For sending household emails | Verified sender, API key, `EMAIL_FROM`                              |
 | Operator support email       | Support/privacy/deletion requests            | Before inviting real users   | Set `NEXT_PUBLIC_SUPPORT_EMAIL` and update legal pages              |
 
 You do **not** need an email marketing subscription, payment gateway, banking API, maps subscription or paid OCR service for the implemented workflows. A transactional email service is for application messages, not marketing. Provider plans and limits can change; check their current terms and usage pages instead of assuming a free tier covers production.
@@ -59,7 +59,7 @@ In Supabase Auth:
 
 The default Supabase mail service is restricted to project-team addresses and heavily rate-limited; it is not a general-production sender. See [Supabase custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) and [its production guide](https://supabase.com/docs/guides/deployment/going-into-prod).
 
-Restart the server after editing `.env.local`. Create a real account, verify it, sign in and create your household. Invite people through Household settings; invitation links are generated but **not automatically emailed**.
+Restart the server after editing `.env.local`. Create a real account, verify it, sign in and create your household. In Household settings, enter a recipient email to send an invitation through Resend. The private link is also available to copy.
 
 ## 4. Set up scheduled in-app reminders
 
@@ -82,14 +82,14 @@ See [Vercel cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing) an
 
 Rent due dates are DATE values derived in the household's IANA timezone. A Thursday anchor and one-day lead give Wednesday and Thursday reminders every 14 days, plus one overdue reminder on Friday. Other anchors move the lead/due days accordingly. Due reminders are not repeated throughout an overdue period. The current release does not backfill a missed reminder day after a scheduler outage; it does generate missing financial/cleaning occurrences in bounded batches.
 
-## 5. Optional reminder email via Resend
+## 5. Invitation and reminder email via Resend
 
 This is separate from Supabase's Auth SMTP configuration. You may use one email vendor for both, but you must configure both channels.
 
-1. Create the provider account and verify your sending domain. Add the exact DNS records the provider supplies. See [Resend domain verification](https://resend.com/changelog/domain-verification-events).
+1. Create the provider account and verify your sending domain. Add the exact DNS records the provider supplies. See [Resend domain verification](https://resend.com/docs/dashboard/domains/introduction).
 2. Set server-only `RESEND_API_KEY` and a valid `EMAIL_FROM`, such as `Fairshare <notifications@your-verified-domain>`.
-3. Users enable email reminders in Household settings. Only notifications generated after opting in are queued.
-4. Confirm the hourly scheduler works and inspect outbox/provider delivery results using a dedicated test mailbox.
+3. Restart the server. To test an invitation, enter an address in **Household settings → Invite member** and check its inbox and the provider's delivery status. Invitations are sent when created. Use an HTTPS app URL in `NEXT_PUBLIC_SITE_URL` when recipients need to open links on another device.
+4. For reminders, users enable email reminders in Household settings. Only notifications generated after opting in are queued. Confirm the hourly scheduler works and inspect outbox/provider delivery results using a dedicated test mailbox.
 
 The worker leases up to eight emails per invocation, uses a stable provider idempotency key, tries at most five times, and stops automatic delivery of messages older than 23 hours. This stays inside the provider's documented [24-hour idempotency window](https://github.com/resend/resend-skills/blob/main/skills/resend/references/sending/best-practices.md). This avoids late retries sending duplicates, but older failures require operator review. Provider acceptance is not proof of inbox delivery. There is no bounce/suppression webhook implementation in this release.
 
@@ -126,7 +126,7 @@ Then run `npm run seed`. It creates five verified `fairshare.member1@example.tes
 | `NEXT_PUBLIC_SUPPORT_EMAIL`            | Yes              | Operator contact link                                       |
 | `SUPABASE_SERVICE_ROLE_KEY`            | **No**           | Scheduler/outbox and development account seed; bypasses RLS |
 | `CRON_SECRET`                          | **No**           | Scheduler endpoint authentication                           |
-| `RESEND_API_KEY`                       | **No**           | Optional reminder email API                                 |
-| `EMAIL_FROM`                           | Server config    | Verified reminder sender                                    |
+| `RESEND_API_KEY`                       | **No**           | Invitation and reminder email API                           |
+| `EMAIL_FROM`                           | Server config    | Verified household email sender                             |
 | `SEED_CONFIRM_DEVELOPMENT`             | **No**           | Explicit development-only seed opt-in                       |
 | `SEED_PASSWORD`                        | **No**           | Development-only account password                           |

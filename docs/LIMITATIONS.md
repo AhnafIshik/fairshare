@@ -20,7 +20,7 @@ The optional Resend delivery code has not sent any emails. In-app reminders need
 - Rent reconfiguration keeps earlier cycles and protects pending/settled future cycles. It voids unpaid cycles from the new anchor and regenerates them. Review the new anchor carefully; changing weekdays changes the due weekday by design.
 - Cleaning supports daily, weekly, fortnightly and anchored monthly recurrence; no arbitrary RRULE editor, effort weighting, multiple assignees or custom day interval. Excluding someone or pausing affects future generation. Reassign already generated tasks explicitly. Rotation order follows the selected member list; there is no drag-and-drop sequence editor.
 - Member restoration/rejoining the same historical household is not exposed in the UI. An operator needs to review and deliberately restore the existing membership rather than create a duplicate. No household deletion or autonomous account-erasure workflow is included. The operator must handle privacy/deletion requests and retention conflicts through the support process.
-- No mobile push, SMS or marketing automation. Invitation links are shared manually; the app does not automatically send invitation emails.
+- Mobile push, SMS and marketing automation are outside the current scope. Invitation emails require a configured Resend sender. The app provides a private link to copy when email delivery is unavailable.
 - No Supabase Realtime subscription. Your own mutations refresh the app; other users' changes appear on navigation or refresh. There is no offline mode or native mobile app.
 
 ## Capacity and operations

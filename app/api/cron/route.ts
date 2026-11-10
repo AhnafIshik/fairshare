@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import { emailConfigured, sendEmail } from '@/lib/email';
 import { adminClient } from '@/lib/supabase/admin';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
       );
     let delivered = 0,
       failed = 0;
-    if (process.env.RESEND_API_KEY && process.env.EMAIL_FROM) {
+    if (emailConfigured()) {
       const claimed = await client.rpc('claim_emails');
       if (claimed.error) throw new Error('Outbox unavailable');
       for (const item of claimed.data || []) {
@@ -58,22 +59,13 @@ export async function GET(request: Request) {
             continue;
           }
           const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-          const response = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              'Content-Type': 'application/json',
-              'Idempotency-Key': `fairshare/${item.id}`,
-            },
-            body: JSON.stringify({
-              from: process.env.EMAIL_FROM,
-              to: [user.email],
-              subject: 'Your Fairshare household reminder',
-              text: `${notice.message}\n\nOpen Fairshare: ${origin}${notice.href}\n\nChange email preferences in Fairshare settings.`,
-            }),
-            signal: AbortSignal.timeout(5000),
+          const delivery = await sendEmail({
+            to: user.email,
+            subject: 'Your Fairshare household reminder',
+            text: `${notice.message}\n\nOpen Fairshare: ${origin}${notice.href}\n\nChange email preferences in Fairshare settings.`,
+            idempotencyKey: `fairshare/${item.id}`,
           });
-          if (!response.ok) throw new Error('Email delivery failed');
+          if (delivery !== 'accepted') throw new Error('Email delivery failed');
           const result = await client
             .from('email_outbox')
             .update({ status: 'sent', sent_at: new Date().toISOString(), lease_until: null })
@@ -93,7 +85,7 @@ export async function GET(request: Request) {
       households: data,
       emailsDelivered: delivered,
       emailsFailed: failed,
-      emailConfigured: Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM),
+      emailConfigured: emailConfigured(),
     });
   } catch {
     return Response.json(

@@ -1,6 +1,6 @@
 # Enable real email login and saved user accounts
 
-The login feature is implemented. Since you have not created a Supabase project yet, the app shows the forms with an **Account connection pending** notice and disables submission. It does not pretend to save an account.
+The login feature is implemented. Until the Supabase connection settings are present, the app shows the forms with an **Account connection pending** notice and disables submission. It does not pretend to save an account.
 
 ## 1. Create a development Supabase project
 
@@ -12,6 +12,8 @@ In the project's SQL Editor, run these files **in order**:
 2. `supabase/migrations/20261105164125_user_profiles.sql`
 
 If you already applied the first file, run only the second. Do not rerun the base migration against existing tables. The second migration adds private user profiles, backfills existing accounts and installs the account-creation/synchronisation trigger. Keep the `private` schema out of the Data API's exposed schemas.
+
+If you ran the profiles file first and the base file failed with a syntax error, use the current base file after confirming that its household tables do not exist yet. Its permission statements preserve the existing profile permissions. Copy the entire file directly from VS Code; `references` must remain one word. Once the base file succeeds, do not rerun it.
 
 The project uses Supabase Auth to handle passwords and sessions. The `public.profiles` table contains the account ID, email, chosen name, timezone, verification timestamp and sign-in timestamps. **There is no password column in the application profile.** Other housemates, including household administrators, cannot read your private profile/email through the profile table. Household names and memberships are separate records.
 
@@ -95,4 +97,8 @@ New free-tier projects using Supabase's default SMTP cannot customise these temp
 
 Automated tests exercise auth validation/flow orchestration with a mocked Auth client and execute the actual profile migration against embedded PostgreSQL with real SQL roles and RLS. They check account creation/backfill, private profile reads, validated owner updates, email/sign-in synchronisation, safe redirects and session-dependent profile saving.
 
-No hosted database or email provider has been created/configured for you. Live email, Google OAuth, real Auth cookies, hosted Storage and deployment need a development Supabase project and end-to-end testing. Connecting the Supabase chat integration alone does not set this app's `.env.local` values or create its tables. The operator should run Supabase security advisors after applying migrations to the actual project.
+Automated tests do not establish that live email, Google OAuth, real Auth cookies, hosted Storage or deployment work. These require a configured development Supabase project and end-to-end testing. Connecting the Supabase chat integration alone does not set this app's `.env.local` values. The operator should run Supabase security advisors after applying migrations to the actual project.
+
+On 6 November 2026, the base migration was applied to the connected Fairshare development project after its profiles migration. Live checks confirmed 18 public tables with RLS enabled, preserved profile/RPC permissions, and denied anonymous household creation. The local suite passed 63 tests, including both migration orders. Email login has not yet been tested against that project.
+
+The hosted security advisor reports 24 [authenticated SECURITY DEFINER RPC warnings](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable). These functions intentionally mediate signed-in writes and membership checks, but their privileged design still warrants review before production; a longer-term improvement is moving their implementations into the private schema behind invoker wrappers. It also reports two [RLS-without-policy notices](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy) for `email_outbox` and `rate_limits`: client table access is deliberately revoked, and only privileged functions/service-role operations access them. Do not add permissive policies just to silence those notices.

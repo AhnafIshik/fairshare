@@ -2,6 +2,7 @@ import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, readdirSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
+import { invitationToken } from '../lib/validation';
 let db: PGlite;
 const users = Array.from(
   { length: 12 },
@@ -58,15 +59,16 @@ async function shares(e: string) {
   );
   return r.rows as { user_id: string; amount_cents: number }[];
 }
-beforeAll(async () => {
-  db = new PGlite();
-  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema storage;
+const supabaseBootstrap = `create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema storage;
  create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_user_meta_data jsonb not null default '{}',created_at timestamptz not null default now(),last_sign_in_at timestamptz);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;
  create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
  create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text);alter table storage.objects enable row level security;
- grant usage on schema storage to authenticated;grant select,insert on storage.objects to authenticated;`);
+ grant usage on schema storage to authenticated;grant select,insert on storage.objects to authenticated;`;
+beforeAll(async () => {
+  db = new PGlite();
+  await db.exec(supabaseBootstrap);
   for (let i = 0; i < users.length; i++)
     await owner('insert into auth.users values($1,$2,now())', [
       users[i],
@@ -343,7 +345,12 @@ describe('access control and invitations', () => {
     const h = await house(1);
     const token = await rpc(users[0], 'create_invitation', [h, 'member1@example.test']);
     await expect(rpc(users[2], 'accept_invitation', [token, 'Wrong email'])).rejects.toThrow();
-    expect(await rpc(users[1], 'accept_invitation', [token, 'Jamie'])).toBe(h);
+    const link = `http://localhost:3000/onboarding?token=${token}`;
+    expect(invitationToken.parse(token)).toBe(token);
+    expect(invitationToken.safeParse(`${link}&token=${token}`).success).toBe(false);
+    expect(
+      await rpc(users[1], 'accept_invitation', [invitationToken.parse(` ${link} `), 'Jamie']),
+    ).toBe(h);
     await expect(rpc(users[2], 'accept_invitation', [token, 'Reuse'])).rejects.toThrow();
     const expired = await rpc(users[0], 'create_invitation', [h, null]);
     await owner(
@@ -721,5 +728,45 @@ describe('saved user profiles and ownership', () => {
       { n: 1 },
     ]);
     await expect(rpc(users[0], 'ensure_profile', [users[1]])).rejects.toThrow();
+  });
+});
+
+describe('manual migration recovery', () => {
+  it('preserves profile access when the base migration is applied after profiles', async () => {
+    const recovery = new PGlite();
+    try {
+      await recovery.exec(supabaseBootstrap);
+      const profileMigration = readdirSync('supabase/migrations').find((f) =>
+        f.endsWith('_user_profiles.sql'),
+      );
+      if (!profileMigration) throw new Error('User profiles migration missing');
+      await recovery.exec(readFileSync('supabase/migrations/' + profileMigration, 'utf8'));
+      await recovery.query(
+        'insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',
+        [users[0], 'recovery@example.test'],
+      );
+      await recovery.exec(readFileSync('supabase/migrations/202611050001_fairshare.sql', 'utf8'));
+      await recovery.query("select set_config('request.jwt.claim.sub',$1,false)", [users[0]]);
+      await recovery.exec('set role authenticated');
+      const original = await recovery.query('select id,email from public.profiles');
+      expect(original.rows).toEqual([{ id: users[0], email: 'recovery@example.test' }]);
+      await recovery.query('select public.ensure_profile()');
+      await recovery.query('select public.update_profile($1,$2)', ['Alex', 'Australia/Sydney']);
+      const updated = await recovery.query('select display_name from public.profiles');
+      expect(updated.rows).toEqual([{ display_name: 'Alex' }]);
+      const permissions = await recovery.query(`select
+        has_function_privilege('anon','public.create_household(jsonb)','EXECUTE') as anonymous_write,
+        has_function_privilege('authenticated','public.rate_limit(text,integer)','EXECUTE') as internal_access,
+        has_table_privilege('authenticated','public.rate_limits','SELECT') as internal_read`);
+      expect(permissions.rows).toEqual([
+        {
+          anonymous_write: false,
+          internal_access: false,
+          internal_read: false,
+        },
+      ]);
+    } finally {
+      await recovery.close();
+    }
   });
 });

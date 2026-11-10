@@ -2571,6 +2571,13 @@ textarea:focus-visible {
   margin: auto;
   padding: 40px;
 }
+.onboarding-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 .onboarding > .section-intro {
   margin-top: 65px;
   max-width: 550px;
